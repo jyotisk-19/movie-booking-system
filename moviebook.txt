@@ -1,0 +1,140 @@
+#include <stdio.h>
+#include <graphics.h>
+#include <conio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+#define MAX_SEATS 50
+#define SEAT_SIZE 40
+#define ROWS 5
+#define COLS 10
+#define LEFT_MARGIN 100
+#define TOP_MARGIN 100
+#define SEAT_GAP 10
+
+bool seats[MAX_SEATS]; // Array to store seat availability (false = available, true = booked)
+int seatNumbers[MAX_SEATS]; // Array to store seat numbers
+
+void drawSeats() {
+    int gd = DETECT, gm;
+    initgraph(&gd, &gm, "C:\\Turboc3\\BGI");
+
+    int left = LEFT_MARGIN, top = TOP_MARGIN, right = LEFT_MARGIN + SEAT_SIZE, bottom = TOP_MARGIN + SEAT_SIZE;
+    char seatNumber[5];
+
+    setcolor(WHITE);
+    settextstyle(DEFAULT_FONT, HORIZ_DIR, 1);
+
+    for (int row = 0; row < ROWS; row++) {
+        for (int col = 0; col < COLS; col++) {
+            rectangle(left, top, right, bottom);
+            if (!seats[row * COLS + col]) {
+                setfillstyle(SOLID_FILL, WHITE);
+                floodfill(left + 2, top + 2, WHITE);
+            } else {
+                setfillstyle(SOLID_FILL, RED);
+                floodfill(left + 2, top + 2, WHITE);
+            }
+            sprintf(seatNumber, "%d", row * COLS + col + 1);
+            outtextxy(left + 10, top + 10, seatNumber);
+
+            left += SEAT_SIZE + SEAT_GAP;
+            right += SEAT_SIZE + SEAT_GAP;
+        }
+        left = LEFT_MARGIN;
+        right = LEFT_MARGIN + SEAT_SIZE;
+        top += SEAT_SIZE + SEAT_GAP;
+        bottom += SEAT_SIZE + SEAT_GAP;
+    }
+
+    settextstyle(DEFAULT_FONT, HORIZ_DIR, 2);
+    outtextxy(LEFT_MARGIN, top + 20, "Click on a seat to book or unbook.");
+}
+
+int getSeatNumber(int x, int y) {
+    int col = (x - LEFT_MARGIN) / (SEAT_SIZE + SEAT_GAP);
+    int row = (y - TOP_MARGIN) / (SEAT_SIZE + SEAT_GAP);
+    if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+        return row * COLS + col + 1;
+    }
+    return -1;
+}
+
+void bookUnbookSeat(int seatNumber) {
+    if (seatNumber > 0 && seatNumber <= MAX_SEATS) {
+        seats[seatNumber - 1] = !seats[seatNumber - 1]; // Toggle seat status
+
+        // Display confirmation message
+        if (seats[seatNumber - 1]) {
+            outtextxy(LEFT_MARGIN, TOP_MARGIN - 40, "Seat booked successfully!");
+        } else {
+            outtextxy(LEFT_MARGIN, TOP_MARGIN - 40, "Seat unbooked successfully!");
+        }
+    }
+}
+
+void selectionSort() {
+    for (int i = 0; i < MAX_SEATS - 1; i++) {
+        for (int j = i + 1; j < MAX_SEATS; j++) {
+            if (seats[i] && !seats[j] || (seats[i] == seats[j] && seatNumbers[i] > seatNumbers[j])) {
+                // Swap seats
+                bool tempSeat = seats[i];
+                seats[i] = seats[j];
+                seats[j] = tempSeat;
+
+                // Swap seat numbers
+                int tempNum = seatNumbers[i];
+                seatNumbers[i] = seatNumbers[j];
+                seatNumbers[j] = tempNum;
+            }
+        }
+    }
+}
+
+int main() {
+    int gd = DETECT, gm, button;
+    initgraph(&gd, &gm, "C:\\Turboc3\\BGI");
+
+    // Initialize all seats as available
+    for (int i = 0; i < MAX_SEATS; ++i) {
+        seats[i] = false;
+        seatNumbers[i] = i + 1; // Seat numbers from 1 to MAX_SEATS
+    }
+
+    drawSeats();
+
+    while (1) {
+        if (ismouseclick(WM_LBUTTONDOWN)) {
+            clearmouseclick(WM_LBUTTONDOWN);
+
+            int x = mousex();
+            int y = mousey();
+
+            int seatNumber = getSeatNumber(x, y);
+            if (seatNumber != -1) {
+                bookUnbookSeat(seatNumber);
+                cleardevice(); // Clear screen to redraw seats and messages
+                drawSeats();
+            }
+        }
+        if (kbhit()) {
+            button = getch();
+            if (button == 13) { // Enter key
+                selectionSort(); // Sort seats
+                printf("\n\nBooking Summary:\n");
+                for (int i = 0; i < MAX_SEATS; ++i) {
+                    if (seats[i]) {
+                        printf("Seat %d is booked.\n", seatNumbers[i]);
+                    }
+                }
+                printf("\nPress any key to exit...");
+                getch();
+                closegraph();
+                exit(0);
+            }
+        }
+    }
+
+    closegraph();
+    return 0;
+}
